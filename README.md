@@ -5,4 +5,4 @@
 2> Password: Random Anything<br>
 
 <h4>YOUTUBE VIDEO LINK:</h4>https://youtu.be/iepOhxYkuaA
-<h4>PPT Drive Link:</h4>https:https://drive.google.com/file/d/1wPoA0guiU_kK00L_MmP1felcQRoqd_8d/view?usp=sharing
+<h4>PPT Drive Link:</h4>https://drive.google.com/file/d/1wPoA0guiU_kK00L_MmP1felcQRoqd_8d/view?usp=sharing
