@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water Footprint Calculator</title>
+    <style>
+    /* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: blue;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.main-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Calculator Styles */
+.calculator-wrapper {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 15px 10px 50px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    text-align: center;
+    transition: all 0.5s ease;
+    position: absolute;
+}
+
+.calculator-wrapper.move-left {
+    position: relative;
+    left: -20%;
+}
+
+/* Chart Container */
+.chart-container {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Input Container */
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 10px auto;
+}
+
+/* Input Field Styles */
+#itemInput {
+    padding-right: 30px; /* Space for the icon */
+    padding: 8px;
+    font-size: 16px;
+    width: 200px; /* Adjust width as needed */
+    box-sizing: border-box;
+    margin: 10px auto;
+    display: block;
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* File Upload Icon (Three Dots) */
+.file-upload-icon {
+    position: absolute;
+    right: 5px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: #333; /* Adjust color as needed */
+    padding: 5px;
+}
+
+button {
+    padding: 8px;
+    font-size: 16px;
+    margin: 10px auto;
+}
+
+#result {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #333;
+}
+
+/* File and Stored Items List */
+#fileContent,
+#storedItemsList {
+    margin-top: 15px;
+    color: #555;
+}
+
+#storedItemsList {
+    list-style: none;
+    padding: 0;
+}
+
+#storedItemsList li {
+    background-color: #e7f3fe;
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 4px;
+}
+
+/* Photo Styles */
+#photo {
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+/* File Input */
+#fileInput {
+    display: none;
+}
+
+/* Suggestions Dropdown */
+#suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #ccc;
+    border-top: none;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 20px; /* Top position for popup */
+    left: 20px; /* Left position for popup */
+    width: 300px; /* Width of the modal */
+    background-color: white; /* Background color of modal */
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 5px; /* Rounded corners */
+    z-index: 1000; /* On top of other elements */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Modal Content Styles */
+.modal-content {
+    position: relative;
+    padding: 10px; /* Padding inside the modal */
+}
+
+/* Close Button Styles */
+.close {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #333; /* Dark color for close button */
+}
+
+/* Camera Feed Styles */
+#cameraFeed {
+    width: 100%; /* Fit the video to the modal width */
+    border-radius: 5px; /* Rounded corners for the video */
+}
+
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="calculator-wrapper" id="calculator-wrapper">
+            <h1>Water Wise</h1>
+            <form id="footprintForm" onsubmit="moveAndCalculateFootprint(event)">
+                <label for="itemInput">Enter an item:
+                    <img src="add_a_photo_16dp_000000.png" style="height: 25px; cursor: pointer;" id="photo" />
+                </label>
+                <div class="input-container">
+                    <input type="text" id="itemInput" placeholder="E.g., Coffee" required />
+                    <label for="fileUpload" class="file-upload-icon">...</label>
+                    <input type="file" id="fileUpload" style="display: none;" />
+                </div>
+                
+                <div id="result"></div>
+                
+                
+                <div id="suggestions"></div>
+                <button type="submit">Calculate Water Footprint</button>
+            </form>
+            
+            <div id="cameraModal" class="modal">
+                <div class="modal-content">
+                    <span id="closeModal" class="close">&times;</span>
+                    <video id="cameraFeed" autoplay></video>
+                </div>
+            </div>
+            
+            <div id="result"></div>
+            <h3>Stored Items</h3>
+            <ul id="storedItemsList"></ul>
+            <h3>Total Water Footprint: <span id="totalFootprint">0</span> liters</h3>
+            <div id="fileContent"></div>
+        </div>
+        <div class="chart-container" id="chartContainer">
+            <div id="chartWrapper"></div>
+            <div id="tableWrapper"></div>
+        </div>
+    </div>
+    <input type="file" id="fileInput" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const footprintData = {
+          Chicken: { id: "Chicken", footprint: "4330" },
+  Pork: { id: "Pork", footprint: "6000" },
+  Rice: { id: "Rice", footprint: "2500" },
+  WheatBread: { id: "Wheat Bread", footprint: "1600" },
+  Potatoes: { id: "Potatoes", footprint: "287" },
+  Apples: { id: "Apples", footprint: "822" },
+  Bananas: { id: "Bananas", footprint: "790" },
+  CoffeeRawBeans: { id: "Coffee (raw beans)", footprint: "18900" },
+  Chocolate: { id: "Chocolate", footprint: "17196" },
+  Milk: { id: "Milk", footprint: "1020" },
+  Cheese: { id: "Cheese", footprint: "5060" },
+  Eggs: { id: "Eggs", footprint: "3300" },
+  Tomatoes: { id: "Tomatoes", footprint: "214" },
+  Oranges: { id: "Oranges", footprint: "560" },
+  Beer: { id: "Beer", footprint: "298" },
+  Wine: { id: "Wine", footprint: "870" },
+  Sugar: { id: "Sugar", footprint: "1500" },
+  Almonds: { id: "Almonds", footprint: "16000" },
+  Avocados: { id: "Avocados", footprint: "2000" },
+  Lettuce: { id: "Lettuce", footprint: "130" },
+  Grapes: { id: "Grapes", footprint: "610" },
+  CornMaize: { id: "Corn (Maize)", footprint: "900" },
+  Soybeans: { id: "Soybeans", footprint: "2300" },
+  PalmOil: { id: "Palm Oil", footprint: "2600" },
+  Lentils: { id: "Lentils", footprint: "5000" },
+  Peanuts: { id: "Peanuts", footprint: "2780" },
+  Barley: { id: "Barley", footprint: "1420" },
+  BeefBurger: { id: "Beef Burger", footprint: "2400" },
+  PorkSausage: { id: "Pork Sausage", footprint: "1800" },
+  Tea: { id: "Tea", footprint: "8860" },
+  OliveOil: { id: "Olive Oil", footprint: "14500" },
+  Peas: { id: "Peas", footprint: "1500" },
+  Strawberries: { id: "Strawberries", footprint: "276" },
+  Pineapple: { id: "Pineapple", footprint: "255" },
+  Cucumbers: { id: "Cucumbers", footprint: "353" },
+  Mushrooms: { id: "Mushrooms", footprint: "1800" },
+  Spinach: { id: "Spinach", footprint: "240" },
+  Onions: { id: "Onions", footprint: "360" },
+  Carrots: { id: "Carrots", footprint: "322" },
+  Oats: { id: "Oats", footprint: "1490" },
+  Coconut: { id: "Coconut", footprint: "2400" },
+  Pumpkin: { id: "Pumpkin", footprint: "490" },
+  Blueberries: { id: "Blueberries", footprint: "850" },
+  Watermelon: { id: "Watermelon", footprint: "255" },
+  Peaches: { id: "Peaches", footprint: "995" },
+  Pears: { id: "Pears", footprint: "920" },
+  Papayas: { id: "Papayas", footprint: "500" },
+  Chickpeas: { id: "Chickpeas", footprint: "4200" },
+  CashewNuts: { id: "Cashew Nuts", footprint: "14218" },
+  Walnuts: { id: "Walnuts", footprint: "9800" },
+  SunflowerSeeds: { id: "Sunflower Seeds", footprint: "3000" },
+  SesameSeeds: { id: "Sesame Seeds", footprint: "3300" },
+  Grapefruit: { id: "Grapefruit", footprint: "450" },
+  Plums: { id: "Plums", footprint: "980" },
+  Raspberries: { id: "Raspberries", footprint: "540" },
+  Mangoes: { id: "Mangoes", footprint: "1900" },
+  Quinoa: { id: "Quinoa", footprint: "1200" },
+  Zucchini: { id: "Zucchini", footprint: "380" },
+  Eggplant: { id: "Eggplant", footprint: "355" },
+  Radishes: { id: "Radishes", footprint: "210" },
+  Salmon: { id: "Salmon", footprint: "4325" },
+  Tuna: { id: "Tuna", footprint: "3400" },
+  Shrimp: { id: "Shrimp", footprint: "1450" },
+  Lobster: { id: "Lobster", footprint: "2850" },
+  Butter: { id: "Butter", footprint: "5553" },
+  Yogurt: { id: "Yogurt", footprint: "1260" },
+  IceCream: { id: "Ice Cream", footprint: "4670" },
+  Bacon: { id: "Bacon", footprint: "5980" },
+  Honey: { id: "Honey", footprint: "3000" },
+  CodFish: { id: "Cod Fish", footprint: "1500" },
+  Sardines: { id: "Sardines", footprint: "2900" },
+  Lamb: { id: "Lamb", footprint: "10400" },
+  GoatMeat: { id: "Goat Meat", footprint: "8500 " },
+  DuckMeat: { id: "Duck Meat", footprint: "6000" },
+  Turkey: { id: "Turkey", footprint: "4200" },
+  Crab: { id: "Crab", footprint: "3200" },
+  Octopus: { id: "Octopus", footprint: "2650" },
+  Clams: { id: "Clams", footprint: "1800" },
+  CashewMilk: { id: "Cashew Milk", footprint: "2280" },
+  CoconutMilk: { id: "Coconut Milk", footprint: "1200" },
+  AlmondMilk: { id: "Almond Milk", footprint: "4100" },
+  Tofu: { id: "Tofu", footprint: "2300" },
+  Seitan: { id: "Seitan", footprint: "2000" },
+  Prawns: { id: "Prawns", footprint: "1900" },
+  GoatCheese: { id: "Goat Cheese", footprint: "5230" },
+  GreekYogurt: { id: "Greek Yogurt", footprint: "1450" },
+  CottageCheese: { id: "Cottage Cheese", footprint: "3500" },
+  DuckEggs: { id: "Duck Eggs", footprint: "3800" },
+  GooseMeat: { id: "Goose Meat", footprint: "7800" },
+  MapleSyrup: { id: "Maple Syrup", footprint: "1800" },
+  CerealWheatBased: { id: "Cereal (Wheat-based)", footprint: "1500" },
+  InstantNoodles: { id: "Instant Noodles", footprint: "2100" },
+  FrozenPizza: { id: "Frozen Pizza", footprint: "2900" },
+  Bagels: { id: "Bagels", footprint: "1550" },
+  PitaBread: { id: "Pita Bread", footprint: "1450" },
+  Tortilla: { id: "Tortilla", footprint: "1100" },
+  AlmondButter: { id: "Almond Butter", footprint: "3100" },
+  PeanutButter: { id: "Peanut Butter", footprint: "2700" },
+  LentilSoup: { id: "Lentil Soup", footprint: "4500" },
+  Hummus: { id: "Hummus", footprint: "3100" },
+  ChocolateBar: { id: "Chocolate Bar", footprint: "17000" },
+  BrownRice: { id: "Brown Rice", footprint: "3500" },
+  WhiteRice: { id: "White Rice", footprint: "2500" },
+  NaanBread: { id: "Naan Bread", footprint: "1300" },
+  RyeBread: { id: "Rye Bread", footprint: "1600" },
+  Spaghetti: { id: "Spaghetti", footprint: "1900" },
+  Macaroni: { id: "Macaroni", footprint: "1800" },
+  Lasagna: { id: "Lasagna", footprint: "2000" },
+  ChickenNuggets: { id: "Chicken Nuggets", footprint: "3500" },
+  CornFlakes: { id: "Corn Flakes", footprint: "2000" },
+  HotDogs: { id: "Hot Dogs", footprint: "2200" },
+  GranolaBars: { id: "Granola Bars", footprint: "1700" },
+  Muffins: { id: "Muffins", footprint: "1600" },
+  Croissants: { id: "Croissants", footprint: "2100" },
+  Biscotti: { id: "Biscotti", footprint: "2200" },
+  EnergyBars: { id: "Energy Bars", footprint: "2000" },
+  ChocolateChipCookies: { id: "Chocolate Chip Cookies", footprint: "2000" },
+  Pretzels: { id: "Pretzels", footprint: "1800" },
+  Nachos: { id: "Nachos", footprint: "2500" },
+  Popcorn: { id: "Popcorn", footprint: "1100" },
+  SoyaMilk: { id: "Soya Milk", footprint: "1800" },
+  RiceCakes: { id: "Rice Cakes", footprint: "1600" },
+  Oatmeal: { id: "Oatmeal", footprint: "1500" },
+  Pancakes: { id: "Pancakes", footprint: "1800" },
+  Waffles: { id: "Waffles", footprint: "2000" },
+  TortillaChips: { id: "Tortilla Chips", footprint: "1900" },
+  CannedBeans: { id: "Canned Beans", footprint: "2000" },
+  AppleSauce: { id: "Apple Sauce", footprint: "700" },
+  FrozenVegetables: { id: "Frozen Vegetables", footprint: "900" },
+  DriedFruit: { id: "Dried Fruit", footprint: "1500" },
+  Pickles: { id: "Pickles", footprint: "1000" },
+  Sauerkraut: { id: "Sauerkraut", footprint: "900" },
+  Kimchi: { id: "Kimchi", footprint: "1200" },
+  Muesli: { id: "Muesli", footprint: "1700" },
+  VeganCheese: { id: "Vegan Cheese", footprint: "3000" },
+  PlantBasedSausages: { id: "Plant-based Sausages", footprint: "2500" },
+  PlantBasedBurgers: { id: "Plant-based Burgers", footprint: "2200" },
+  SoySauce: { id: "Soy Sauce", footprint: "1500" },
+  Mayonnaise: { id: "Mayonnaise", footprint: "2300" },
+  Ketchup: { id: "Ketchup", footprint: "1800" },
+  BBQSauce: { id: "BBQ Sauce", footprint: "2000" },
+  SaladDressing: { id: "Salad Dressing", footprint: "2200" },
+  Falafel: { id: "Falafel", footprint: "3200" },
+  ChiaSeeds: { id: "Chia Seeds", footprint: "2400" },
+  Miso: { id: "Miso", footprint: "1800" },
+  VeganYogurt: { id: "Vegan Yogurt", footprint: "1600" },
+  Seaweed: { id: "Seaweed", footprint: "1000" },
+  CacaoPowder: { id: "Cacao Powder", footprint: "10000" },
+  TofuScramble: { id: "Tofu Scramble", footprint: "2300" },
+  VeganIceCream: { id: "Vegan Ice Cream", footprint: "3500" },
+  FruitSmoothie: { id: "Fruit Smoothie", footprint: "1700" },
+  Nutella: { id: "Nutella", footprint: "15000" },
+  FrozenBerries: { id: "Frozen Berries", footprint: "1000" },
+  AlmondFlour: { id: "Almond Flour", footprint: "3200" },
+  CoconutFlour: { id: "Coconut Flour", footprint: "2500" },
+  CashewCheese: { id: "Cashew Cheese", footprint: "2800" },
+  VeganButter: { id: "Vegan Butter", footprint: "2600" },
+  TortillaWraps: { id: "Tortilla Wraps", footprint: "5200" },
+  VeganMayonnaise: { id: "Vegan Mayonnaise", footprint: "1800" },
+  Celery: { id: "Celery", footprint: "2300" },
+  Artichokes: { id: "Artichokes", footprint: "300" },
+  Leeks: { id: "Leeks", footprint: "450" },
+  BrusselsSprouts: { id: "Brussels Sprouts", footprint: "350" },
+  Cabbage: { id: "Cabbage", footprint: "290" },
+  Cauliflower: { id: "Cauliflower", footprint: "400" },
+  Broccoli: { id: "Broccoli", footprint: "350" },
+  Asparagus: { id: "Asparagus", footprint: "340" },
+  BellPeppers: { id: "Bell Peppers", footprint: "600" },
+  SweetPotatoes: { id: "Sweet Potatoes", footprint: "500" },
+  Beets: { id: "Beets", footprint: "560" },
+  Turnips: { id: "Turnips", footprint: "470" },
+  SwissChard: { id: "Swiss Chard", footprint: "300" },
+  Radicchio: { id: "Radicchio", footprint: "360" },
+  Endive: { id: "Endive", footprint: "320" },
+  Fennel: { id: "Fennel", footprint: "350" },
+  Okra: { id: "Okra", footprint: "400" },
+  Jicama: { id: "Jicama", footprint: "400" },
+  Kiwifruit: { id: "Kiwifruit", footprint: "550" },
+  Guava: { id: "Guava", footprint: "620" },
+  DragonFruit: { id: "Dragon Fruit", footprint: "800" },
+  PassionFruit: { id: "Passion Fruit", footprint: "720" },
+  Pomegranate: { id: "Pomegranate", footprint: "750" },
+  Persimmons: { id: "Persimmons", footprint: "700" },
+  Dates: { id: "Dates", footprint: "1500" },
+  Fig: { id: "Fig", footprint: "950" },
+  Apricots: { id: "Apricots", footprint: "1000" },
+  Nectarines: { id: "Nectarines", footprint: "950" },
+  Plums: { id: "Plums", footprint: "980" },
+  Raspberries: { id: "Raspberries", footprint: "540" },
+  Blackberries: { id: "Blackberries", footprint: "580" },
+  Gooseberries: { id: "Gooseberries", footprint: "650" },
+  Mulberries: { id: "Mulberries", footprint: "670" },
+  GrapesRed: { id: "Grapes (Red)", footprint: "620" },
+  GrapesGreen: { id: "Grapes (Green)", footprint: "600" },
+  Raisins: { id: "Raisins", footprint: "1500" },
+  FigsDried: { id: "Figs (Dried)", footprint: "2000" },
+  Cherries: { id: "Cherries", footprint: "730" },
+  SourCherries: { id: "Sour Cherries", footprint: "720" },
+  ApplesGreen: { id: "Apples (Green)", footprint: "810" },
+  ApplesRed: { id: "Apples (Red)", footprint: "820" },
+  PearsAnjou: { id: "Pears (Anjou)", footprint: "930" },
+  PearsBosc: { id: "Pears (Bosc)", footprint: "920" },
+  Quinces: { id: "Quinces", footprint: "1000" },
+  Kiwi: { id: "Kiwi", footprint: "660" },
+  Papaya: { id: "Papaya", footprint: "500" },
+  Cantaloupe: { id: "Cantaloupe", footprint: "400" },
+  Honeydew: { id: "Honeydew", footprint: "450" },
+  Watermelon: { id: "Watermelon", footprint: "255" },
+  GrapefruitRed: { id: "Grapefruit (Red)", footprint: "450" },
+  GrapefruitWhite: { id: "Grapefruit (White)", footprint: "470" },
+  Lime: { id: "Lime", footprint: "600" },
+  Lemon: { id: "Lemon", footprint: "650" },
+  OrangeJuice: { id: "Orange Juice", footprint: "550" },
+  AppleJuice: { id: "Apple Juice", footprint: "700" },
+  TomatoJuice: { id: "Tomato Juice", footprint: "500" },
+  CoconutWater: { id: "Coconut Water", footprint: "1200" },
+  AlmondMilk: { id: "Almond Milk", footprint: "4100" },
+  RiceMilk: { id: "Rice Milk", footprint: "2000 " },
+  OatMilk: { id: "Oat Milk", footprint: "1800" },
+  SoyMilk: { id: "Soy Milk", footprint: "1800" },
+  CashewMilk: { id: "Cashew Milk", footprint: "2280" },
+  MacadamiaMilk: { id: "Macadamia Milk", footprint: "2500" },
+  HempMilk: { id: "Hemp Milk", footprint: "1900" },
+  FlaxMilk: { id: "Flax Milk", footprint: "2000" },
+  PeaMilk: { id: "Pea Milk", footprint: "1800" },
+  Buttermilk: { id: "Buttermilk", footprint: "1500" },
+  Cream: { id: "Cream", footprint: "4500" },
+  SourCream: { id: "Sour Cream", footprint: "2300" },
+  HeavyCream: { id: "Heavy Cream", footprint: "6000" },
+  RicottaCheese: { id: "Ricotta Cheese", footprint: "3500" },
+  CreamCheese: { id: "Cream Cheese", footprint: "4000" },
+  Parmesan: { id: "Parmesan", footprint: "5500" },
+  Mozzarella: { id: "Mozzarella", footprint: "7200" },
+  FetaCheese: { id: "Feta Cheese", footprint: "5000" },
+  Gouda: { id: "Gouda", footprint: "6000" },
+  SwissCheese: { id: "Swiss Cheese", footprint: "5800" },
+  BrieCheese: { id: "Brie Cheese", footprint: "5600" },
+  Camembert: { id: "Camembert", footprint: "6200" },
+  BlueCheese: { id: "Blue Cheese", footprint: "6500" },
+  Roquefort: { id: "Roquefort", footprint: "7000" },
+  GoatCheese: { id: "Goat Cheese", footprint: "7500" },
+  CheddarCheese: { id: "Cheddar Cheese", footprint: "5230" },
+  MontereyJack: { id: "Monterey Jack", footprint: "6000" },
+  Provolone: { id: "Provolone", footprint: "5800" },
+  Gruyère: { id: "Gruyère", footprint: "5600" },
+  Emmental: { id: "Emmental", footprint: "5700" },
+  Havarti: { id: "Havarti", footprint: "5800" },
+  Raclette: { id: "Raclette", footprint: "6200" },
+  Halloumi: { id: "Halloumi", footprint: "6000" },
+  QuesoFresco: { id: "Queso Fresco", footprint: "5500" },
+  QuesoBlanco: { id: "Queso Blanco", footprint: "5600" },
+  QuesoCotija: { id: "Queso Cotija", footprint: "6200" },
+  QuesoOaxaca: { id: "Queso Oaxaca", footprint: "5800" },
+  QuesoPanela: { id: "Queso Panela", footprint: "5700" },
+  QuesoDeCabra: { id: "Queso de Cabra", footprint: "5800" },
+  Mascarpone: { id: "Mascarpone", footprint: "6500" },
+  Burrata: { id: "Burrata", footprint: "6000" },
+  RicottaSalata: { id: "Ricotta Salata", footprint: "6200" },
+  Asiago: { id: "Asiago", footprint: "6000" },
+  PecorinoRomano: { id: "Pecorino Romano", footprint: "7000" },
+  GranaPadano: { id: "Grana Padano", footprint: "7200" },
+  ParmesanReggiano: { id: "Parmesan Reggiano", footprint: "7500" },
+  Stilton: { id: "Stilton", footprint: "7800" },
+  Gorgonzola: { id: "Gorgonzola", footprint: "8000" },
+  Limburger: { id: "Limburger", footprint: "7500" },
+  Muenster: { id: "Muenster", footprint: "6500" },
+  Cotija: { id: "Cotija", footprint: "6000" },
+  VeganCreamCheese: { id: "Vegan Cream Cheese", footprint: "2800" },
+  VeganParmesan: { id: "Vegan Parmesan", footprint: "4000" },
+  VeganMozzarella: { id: "Vegan Mozzarella", footprint: "3500" },
+  VeganCheddar: { id: "Vegan Cheddar", footprint: "4000" },
+  VeganRicotta: { id: "Vegan Ricotta", footprint: "3800" },
+  VeganBlueCheese: { id: "Vegan Blue Cheese", footprint: "4200" },
+  VeganFetaCheese: { id: "Vegan Feta Cheese", footprint: "4100" },
+  CornSyrup: { id: "Corn Syrup", footprint: "1800" },
+  AgaveSyrup: { id: "Agave Syrup", footprint: "2000" },
+  HoneyRaw: { id: "Honey (Raw)", footprint: "3000" },
+  Molasses: { id: "Molasses", footprint: "1600" },
+  MapleSyrup: { id: "Maple Syrup", footprint: "1800" },
+  JamFruit: { id: "Jam (Fruit)", footprint: "1500" },
+  Marmalade: { id: "Marmalade", footprint: "1700" },
+  Jelly: { id: "Jelly", footprint: "1600" },
+  ChocolateSyrup: { id: "Chocolate Syrup", footprint: "2000" },
+  AppleButter: { id: "Apple Butter", footprint: "1700" },
+  PeanutOil: { id: "Peanut Oil", footprint: "3000" },
+  OliveOil: { id: "Olive Oil", footprint: "14500" },
+  SunflowerOil: { id: "Sunflower Oil", footprint: "2500" },
+  CanolaOil: { id: "Canola Oil", footprint: "2800" },
+  SafflowerOil: { id: "Safflower Oil", footprint: "2600" },
+  SoybeanOil: { id: "Soybean Oil", footprint: "2900" },
+  SesameOil: { id: "Sesame Oil", footprint: "3000" },
+  AvocadoOil: { id: "Avocado Oil", footprint: "3200" },
+  CoconutOil: { id: "Coconut Oil", footprint: "2400" },
+  CoconutCream: { id: "Coconut Cream", footprint: "2000" },
+  Lard: { id: "Lard", footprint: "5200" },
+  DuckFat: { id: "Duck Fat", footprint: "2800" },
+  BeefTallow: { id: "Beef Tallow", footprint: "3000" },
+  ChickenFat: { id: "Chicken Fat", footprint: "4000" },
+  PorkLard: { id: "Pork Lard", footprint: "2900" },
+  SweetenedCondensedMilk: { id: "Sweetened Condensed Milk", footprint: "3000" },
+  EvaporatedMilk: { id: "Evaporated Milk", footprint: "1800" },
+  PowderedMilk: { id: "Powdered Milk", footprint: "1600" },
+  InstantCoffee: { id: "Instant Coffee", footprint: "2000" },
+  GroundCoffee: { id: "Ground Coffee", footprint: "2500" },
+  Espresso: { id: "Espresso", footprint: "3000" },
+  CoffeePods: { id: "Coffee Pods", footprint: "2800" },
+  TeaBags: { id: "Tea Bags", footprint: "3200" },
+  LooseLeafTea: { id: "Loose Leaf Tea", footprint: "3000" },
+  GreenTea: { id: "Green Tea", footprint: "3200" },
+  BlackTea: { id: "Black Tea", footprint: "3000" },
+  HerbalTea: { id: "Herbal Tea", footprint: "3100" },
+  Matcha: { id: "Matcha",  footprint: "2900" },
+  ChaiTea: { id: "Chai Tea", footprint: "4500" },
+  YerbaMate: { id: "Yerba Mate", footprint: "3200" },
+  HerbalInfusions: { id: "Herbal Infusions", footprint: "3400" },
+  SportsDrinks: { id: "Sports Drinks", footprint: "3000" },
+  EnergyDrinks: { id: "Energy Drinks", footprint: "1800" },
+  SoftDrinks: { id: "Soft Drinks", footprint: "2000" },
+  BottledWater: { id: "Bottled Water", footprint: "1500" },
+  SparklingWater: { id: "Sparkling Water", footprint: "1000" },
+  MineralWater: { id: "Mineral Water", footprint: "1200" },
+  FlavoredWater: { id: "Flavored Water", footprint: "1200" },
+  ElectrolyteDrinks: { id: "Electrolyte Drinks", footprint: "1500" },
+  FruitJuices: { id: "Fruit Juices", footprint: "2000" },
+  VegetableJuices: { id: "Vegetable Juices", footprint: "1800" },
+  Smoothies: { id: "Smoothies", footprint: "2000" },
+  FrozenYogurt: { id: "Frozen Yogurt", footprint: "1700" },
+  Gelato: { id: "Gelato", footprint: "4000" },
+  Sorbet: { id: "Sorbet", footprint: "4200" },
+  Sherbet: { id: "Sherbet", footprint: "3800" },
+  IceCreamSundaes: { id: "Ice Cream Sundaes", footprint: "3500" },
+  FrozenCustard: { id: "Frozen Custard", footprint: "4500" },
+  SoftServeIceCream: { id: "Soft Serve Ice Cream", footprint: "4300" },
+  FrozenCakes: { id: "Frozen Cakes", footprint: "4300" },
+  FrozenPies: { id: "Frozen Pies", footprint: "4000" },
+  FrozenPastries: { id: "Frozen Pastries", footprint: "4200" },
+  FrozenWaffles: { id: "Frozen Waffles", footprint: "4000" },
+  FrozenPancakes: { id: "Frozen Pancakes", footprint: "3800" },
+  FrozenBreakfastSandwiches: { id: "Frozen Breakfast Sandwiches", footprint: "3800" },
+  FrozenBurritos: { id: "Frozen Burritos", footprint: "4000" },
+  FrozenEntrees: { id: "Frozen Entrees", footprint: "4000" },
+  FrozenMeals: { id: "Frozen Meals", footprint: "4100" },
+  CannedVegetables: { id: "Canned Vegetables", footprint: "4200" },
+  CannedFruit: { id: "Canned Fruit", footprint: "1800" },
+  CannedMeat: { id: "Canned Meat", footprint: "1800" },
+  CannedFish: { id: "Canned Fish", footprint: "2500" },
+  CannedSoup: { id: "Canned Soup", footprint: "2700" },
+  CannedBeans: { id: "Canned Beans", footprint: "2000" },
+  CannedSauces: { id: "Canned Sauces", footprint: "2200" },
+  CannedJuices: { id: "Canned Juices", footprint: "2300" },
+  InstantSoups: { id: "Instant Soups", footprint: "1800" },
+  InstantSauces: { id: "Instant Sauces", footprint: "2200" },
+  InstantMeals: { id: "Instant Meals", footprint: "2300" },
+  InstantBreakfasts: { id: "Instant Breakfasts", footprint: "2400" },
+  InstantOatmeal: { id: "Instant Oatmeal", footprint: "2300" },
+  InstantRice: { id: "Instant Rice", footprint: "2400" },
+  InstantNoodles: { id: "Instant Noodles", footprint: "2500" },
+  InstantPasta: { id: "Instant Pasta", footprint: "2600" },
+  InstantGrains: { id: "Instant Grains", footprint: "2500" },
+  InstantBeans: { id: "Instant Beans", footprint: "2500" },
+  InstantLentils: { id: "Instant Lentils", footprint: "2600" },
+  InstantQuinoa: { id: "Instant Quinoa", footprint: "2400" },
+  InstantBarley: { id: "Instant Barley", footprint: "2500" },
+  InstantCouscous: { id: "Instant Couscous", footprint: "2500" },
+  InstantPolenta: { id: "Instant Polenta", footprint: "2500" },
+  InstantGrits: { id: "Instant Grits", footprint: "2600" },
+  InstantFarro: { id: "Instant Farro", footprint: "2500" },
+  InstantBulgur: { id: "Instant Bulgur", footprint: "2500" }
+        };
+
+        let storedItems = [];
+        const allItems = Object.keys(footprintData).sort();
+
+        function moveAndCalculateFootprint(event) {
+            event.preventDefault();
+
+            const item = document.getElementById("itemInput").value;
+            const result = getWaterFootprint(item);
+
+            const calculatorWrapper = document.getElementById("calculator-wrapper");
+            calculatorWrapper.classList.add("move-left");
+
+            if (result) {
+                storedItems.push(result);
+
+                document.getElementById("result").innerText = `Item: ${item} | ID: ${result.id} | Water Footprint: ${result.footprint} liters`;
+
+                updateStoredItems();
+                updateTotalFootprint();
+
+                createChartWrapper();
+                createTableWrapper();
+            } else {
+                document.getElementById("result").innerText = `Item not found in the predefined list.`;
+            }
+        }
+
+        function createChartWrapper() {
+            const chartWrapper = document.getElementById("chartWrapper");
+            chartWrapper.style.display = "block";
+
+            chartWrapper.innerHTML = "";
+            const chartCanvas = document.createElement("canvas");
+            chartCanvas.id = "waterUsageChart";
+            chartWrapper.appendChild(chartCanvas);
+
+            const ctx = document.getElementById("waterUsageChart").getContext("2d");
+            const chartData = {
+                labels: storedItems.map((item) => item.id),
+                datasets: [
+                    {
+                        label: "Water Usage (Liters)",
+                        data: storedItems.map((item) => item.footprint),
+                        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+                    },
+                ],
+            };
+
+            new Chart(ctx, {
+                type: "pie",
+                data: chartData,
+            });
+        }
+
+        function createTableWrapper() {
+            const tableWrapper = document.getElementById("tableWrapper");
+            tableWrapper.style.display = "block";
+
+            tableWrapper.innerHTML = "";
+            const table = document.createElement("table");
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Water Footprints</th>
+                    </tr>
+                </thead>
+                <tbody id="dataRows">
+                    <!-- Rows will be dynamically inserted here -->
+                </tbody>
+            `;
+            tableWrapper.appendChild(table);
+
+            storedItems.forEach((item) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${item.id}</td><td>${item.footprint}</td>`;
+                document.getElementById("dataRows").appendChild(row);
+            });
+        }
+
+        function getWaterFootprint(item) {
+            return footprintData[item] || null;
+        }
+
+        function updateStoredItems() {
+            const storedItemsList = document.getElementById("storedItemsList");
+            storedItemsList.innerHTML = "";
+
+            storedItems.forEach((item) => {
+                const listItem = document.createElement("li");
+                listItem.textContent = `Item: ${item.id} | Consumption: ${item.consumption} | Content: ${item.content} | Water Footprint: ${item.footprint} liters`;
+                storedItemsList.appendChild(listItem);
+            });
+        }
+
+        function updateTotalFootprint() {
+            const totalFootprint = storedItems.reduce(
+                (total, item) => total + parseFloat(item.footprint),
+                0
+            );
+            document.getElementById("totalFootprint").innerText = totalFootprint;
+        }
+
+        function updateSuggestions() {
+            const input = document.getElementById("itemInput").value.toLowerCase();
+            const suggestions = document.getElementById("suggestions");
+
+            suggestions.innerHTML = "";
+
+            if (input === "") {
+                allItems.forEach((item) => {
+                    const suggestionItem = document.createElement("div");
+                    suggestionItem.textContent = item;
+                    suggestionItem.classList.add("suggestion-item");
+                    suggestionItem.onclick = () => {
+                        document.getElementById("itemInput").value = item;
+                        updateSuggestions();
+                    };
+                    suggestions.appendChild(suggestionItem);
+                });
+                return;
+            }
+
+            const filteredItems = allItems
+                .filter((item) => item.toLowerCase().includes(input))
+                .sort();
+
+            filteredItems.slice(0, 5).forEach((item) => {
+                const suggestionItem = document.createElement("div");
+                suggestionItem.textContent = item;
+                suggestionItem.classList.add("suggestion-item");
+                suggestionItem.onclick = () => {
+                    document.getElementById("itemInput").value = item;
+                    updateSuggestions();
+                };
+                suggestions.appendChild(suggestionItem);
+            });
+        }
+
+        document.getElementById("itemInput").addEventListener("focus", updateSuggestions);
+        document.getElementById("itemInput").addEventListener("input", updateSuggestions);
+
+        const photo = document.getElementById("photo");
+const cameraModal = document.getElementById("cameraModal");
+const cameraFeed = document.getElementById("cameraFeed");
+const closeModal = document.getElementById("closeModal");
+let stream;
+
+// Toggle camera modal on image click
+photo.addEventListener("click", () => {
+    if (cameraModal.style.display === 'none' || cameraModal.style.display === '') {
+        openCamera();
+    } else {
+        closeCamera();
+    }
+});
+
+// Open the camera modal and start the feed
+function openCamera() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((mediaStream) => {
+                stream = mediaStream; // Store the stream to stop it later
+                cameraFeed.srcObject = stream;
+                cameraModal.style.display = 'block'; // Show modal
+            })
+            .catch((error) => {
+                console.error("Error accessing the camera: ", error);
+                alert("Unable to access the camera.");
+            });
+    } else {
+        alert("Your browser does not support accessing the camera.");
+    }
+}
+
+// Close the camera modal and stop the feed
+function closeCamera() {
+    cameraModal.style.display = 'none'; // Hide modal
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop()); // Stop all video tracks
+    }
+    cameraFeed.srcObject = null; // Reset video source
+}
+
+// Close modal when clicking on the close button
+closeModal.addEventListener("click", closeCamera);
+document.getElementById("fileUpload").addEventListener("change", function () {
+    const fileInput = document.getElementById("fileUpload");
+    const itemInput = document.getElementById("itemInput");
+    const result = document.getElementById("result");
+
+    if (fileInput.files.length > 0) {
+        // Get the selected file's name and display it in the input field
+        itemInput.value = fileInput.files[0].name;
+        result.textContent = "Selected File: " + fileInput.files[0].name;
+    } else {
+        result.textContent = "";
+    }
+});
+
+    </script>
+</body>
+</html>
